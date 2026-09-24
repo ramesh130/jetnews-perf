@@ -20,6 +20,11 @@ adb_s() { adb -s "$SERIAL" "$@"; }
 sha256_of() { shasum -a 256 "$1" | awk '{print $1}'; }
 
 json_str() {
+    # perl -p prints nothing for empty input, so the empty string is written here.
+    if [ -z "$1" ]; then
+        printf '""'
+        return
+    fi
     printf '%s' "$1" | perl -0777 -pe '
         s/\\/\\\\/g; s/"/\\"/g; s/\n/\\n/g; s/\r/\\r/g; s/\t/\\t/g;
         s/([\x00-\x1f])/sprintf("\\u%04x", ord($1))/ge;
