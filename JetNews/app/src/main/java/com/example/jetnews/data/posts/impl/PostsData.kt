@@ -1184,16 +1184,32 @@ val post6 = Post(
 val posts: PostsFeed =
     PostsFeed(
         highlightedPost = post6,
-        recommendedPosts = listOf(post1, post2, post3),
+        recommendedPosts = repeatedForFeed(listOf(post1, post2, post3)),
         popularPosts = listOf(
             post5,
             post1.copy(id = "post6"),
             post2.copy(id = "post7"),
         ),
-        recentPosts = listOf(
-            post6,
-            post3.copy(id = "post8"),
-            post4.copy(id = "post9"),
-            post5.copy(id = "post10"),
+        recentPosts = repeatedForFeed(
+            listOf(
+                post6,
+                post3.copy(id = "post8"),
+                post4.copy(id = "post9"),
+                post5.copy(id = "post10"),
+            ),
         ),
     )
+
+/**
+ * How many times each list section of the home feed repeats its posts. The sample has 11 posts, which
+ * a single swipe scrolls past; repeated, the feed is several screens long, as a news feed is.
+ */
+private const val FEED_REPEATS = 10
+
+/**
+ * [posts] followed by [FEED_REPEATS] - 1 copies of them. The first round keeps the posts' own ids, so
+ * deep links still find them; each copy gets its own id, so that bookmarking a row marks that row only.
+ */
+private fun repeatedForFeed(posts: List<Post>): List<Post> = posts + (1 until FEED_REPEATS).flatMap { round ->
+    posts.map { it.copy(id = "${it.id}-$round") }
+}
