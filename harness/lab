@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: Apache-2.0
+#
+# Builds JetNews, installs it on the emulator, drives one scenario and comes back with a trace and a
+# run.json that says what was measured on what.
+#
+#   harness/lab run <startup|scroll|bookmarks|leak> [--plant <name>]
+#
+# The shape of superPlayer's devicelab `lab run`, cut down to what JetNews needs (lib.sh says what was
+# dropped). A run:
+#   1. adopts the booted emulator (ANDROID_SERIAL, default emulator-5554) and refuses another AVD;
+#   2. refuses a JetNews/ with uncommitted changes, so that `base_commit` names what was built;
+#   3. with --plant, applies plants/<name>.patch, builds, and reverts it before anything is measured;
+#   4. installs the APK and records its sha256;
+#   5. runs the scenario's setup untraced, then its measured part inside the trace;
+#   6. writes runs/<run_id>/: run.json, trace.perfetto-trace.gz, the Perfetto config, the scenario's
+#      own records, and plant.patch for a planted run.
+#
+# Build: `./gradlew assembleDebug --max-workers=2` on JDK 17 (JAVA_HOME, or /usr/libexec/java_home -v 17).
+# Never `./gradlew --stop`: other builds on the host share the daemon.
+
+set -euo pipefail
+
+HARNESS="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO="$(cd "$HARNESS/.." && pwd)"
+APP_PACKAGE=com.example.jetnews
+APP_ACTIVITY=.ui.MainActivity
+
+# shellcheck source=lib.sh
+. "$HARNESS/lib.sh"
+
+usage() {
+    sed -n 's/^#   //p' "$0" | head -1
+    exit 2
+}
+
+[ "${1:-}" = run ] || usage
+SCENARIO="${2:-}"
+[ -f "$HARNESS/scenarios/$SCENARIO.sh" ] || usage
+shift 2
+PLANT_ARG=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --plant) PLANT_ARG="$2"; shift 2 ;;
+        *) usage ;;
+    esac
+done
+
+SCENARIO_OWN_TRACE=0
+SCENARIO_TRACE_MS=600000
+# shellcheck source=/dev/null
+. "$HARNESS/scenarios/$SCENARIO.sh"
+
+on_exit() {
+    local code=$?
+    abandon_session || true
+    plant_revert || code=1
+    [ "$code" = 0 ] || log "run failed; nothing under runs/${RUN_ID:-?} is a measurement"
+    exit "$code"
+}
+trap on_exit EXIT
+
+JAVA_HOME="${JAVA_HOME:-$(/usr/libexec/java_home -v 17)}"
+export JAVA_HOME
+JDK_VERSION="$("$JAVA_HOME/bin/java" -version 2>&1 | head -1)"
+
+device_adopt
+app_tree_clean || die "JetNews/ has uncommitted changes; commit them first so the run can name what it built"
+BASE_COMMIT="$(git -C "$REPO" rev-parse HEAD)"
+APP_TREE="$(git -C "$REPO" rev-parse HEAD:JetNews)"
+[ -z "$PLANT_ARG" ] || plant_apply "$PLANT_ARG"
+
+log "building JetNews ($APP_TREE)"
+(cd "$REPO/JetNews" && ./gradlew assembleDebug --max-workers=2 -q) >&2 || die "the build failed"
+plant_revert || die "could not take the plant out again"
+APK="$REPO/JetNews/app/build/outputs/apk/debug/app-debug.apk"
+APK_SHA256="$(sha256_of "$APK")"
+adb_s install -r "$APK" >/dev/null || die "the install failed"
+log "installed $APK_SHA256"
+
+RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)"
+RUN_DIR="$REPO/runs/$RUN_ID"
+mkdir -p "$RUN_DIR"
+RUN_STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+[ -z "$PLANT_NAME" ] || cp "$PLANT_FILE" "$RUN_DIR/plant.patch"
+
+scenario_setup
+if [ "$SCENARIO_OWN_TRACE" = 1 ]; then
+    scenario_drive
+else
+    trace_begin trace "$SCENARIO_DATA_SOURCES" "$SCENARIO_TRACE_MS"
+    scenario_drive
+    trace_end trace
+fi
+RUN_FINISHED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+run_json > "$RUN_DIR/run.json"
+log "run $RUN_ID done: $RUN_DIR"
+printf '%s\n' "$RUN_ID"
