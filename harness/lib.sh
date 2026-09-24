@@ -61,8 +61,14 @@ app_launch() {
 # Fails unless the app's Activity has focus: a dialog or a crash would make the rest of the run measure
 # something else.
 assert_app_in_focus() {
-    adb_s shell dumpsys window | tr -d '\r' | grep -q "mCurrentFocus=.*$APP_PACKAGE" ||
-        die "$APP_PACKAGE does not have focus: $(adb_s shell dumpsys window | tr -d '\r' | grep mCurrentFocus | head -1)"
+    local focus
+    # Read whole before matching: `grep -q` would stop reading early, and under pipefail the writer's
+    # SIGPIPE would fail the check.
+    focus="$(adb_s shell dumpsys window | tr -d '\r' | grep mCurrentFocus || true)"
+    case "$focus" in
+        *"$APP_PACKAGE"*) ;;
+        *) die "$APP_PACKAGE does not have focus: $focus" ;;
+    esac
 }
 
 # The screen's size in pixels, as "<width> <height>".

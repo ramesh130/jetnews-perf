@@ -16,7 +16,7 @@
 #   6. writes runs/<run_id>/: run.json, trace.perfetto-trace.gz, the Perfetto config, the scenario's
 #      own records, and plant.patch for a planted run.
 #
-# Build: `./gradlew assembleDebug --max-workers=2` on JDK 17 (JAVA_HOME, or /usr/libexec/java_home -v 17).
+# Build: `./gradlew assembleDebug --max-workers=2` on JDK 17 (below).
 # Never `./gradlew --stop`: other builds on the host share the daemon.
 
 set -euo pipefail
@@ -60,7 +60,9 @@ on_exit() {
 }
 trap on_exit EXIT
 
-JAVA_HOME="${JAVA_HOME:-$(/usr/libexec/java_home -v 17)}"
+# JDK 17 whatever the shell's JAVA_HOME says: the first pilot inherited a JDK 25 from the environment.
+# LAB_JAVA_HOME overrides it on a host without /usr/libexec/java_home.
+JAVA_HOME="${LAB_JAVA_HOME:-$(/usr/libexec/java_home -v 17)}"
 export JAVA_HOME
 JDK_VERSION="$("$JAVA_HOME/bin/java" -version 2>&1 | head -1)"
 
