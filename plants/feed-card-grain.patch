@@ -1,5 +1,5 @@
 diff --git a/JetNews/app/src/main/java/com/example/jetnews/ui/home/PostCards.kt b/JetNews/app/src/main/java/com/example/jetnews/ui/home/PostCards.kt
-index 57cafe7..6453920 100644
+index 57cafe7..1c36219 100644
 --- a/JetNews/app/src/main/java/com/example/jetnews/ui/home/PostCards.kt
 +++ b/JetNews/app/src/main/java/com/example/jetnews/ui/home/PostCards.kt
 @@ -30,12 +30,17 @@ import androidx.compose.material3.MaterialTheme
@@ -54,7 +54,7 @@ index 57cafe7..6453920 100644
      }
  }
  
-+private const val GRAIN_SPECKS = 4_000
++private const val GRAIN_SPECKS = 6_000
 +
 +private const val GRAIN_ALPHA = 0.04f
 +
