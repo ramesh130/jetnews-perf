@@ -1,21 +1,22 @@
 diff --git a/JetNews/app/src/main/java/com/example/jetnews/ui/home/PostCards.kt b/JetNews/app/src/main/java/com/example/jetnews/ui/home/PostCards.kt
-index 57cafe7..4d94782 100644
+index 57cafe7..e89f106 100644
 --- a/JetNews/app/src/main/java/com/example/jetnews/ui/home/PostCards.kt
 +++ b/JetNews/app/src/main/java/com/example/jetnews/ui/home/PostCards.kt
-@@ -31,11 +31,16 @@ import androidx.compose.material3.Surface
+@@ -30,12 +30,17 @@ import androidx.compose.material3.MaterialTheme
+ import androidx.compose.material3.Surface
  import androidx.compose.material3.Text
  import androidx.compose.runtime.Composable
++import androidx.compose.runtime.LaunchedEffect
  import androidx.compose.runtime.getValue
-+import androidx.compose.runtime.mutableFloatStateOf
++import androidx.compose.runtime.mutableLongStateOf
  import androidx.compose.runtime.mutableStateOf
  import androidx.compose.runtime.remember
  import androidx.compose.runtime.setValue
++import androidx.compose.runtime.withFrameNanos
  import androidx.compose.ui.Modifier
  import androidx.compose.ui.draw.clip
 +import androidx.compose.ui.draw.drawWithContent
 +import androidx.compose.ui.graphics.Color
-+import androidx.compose.ui.layout.onGloballyPositioned
-+import androidx.compose.ui.layout.positionInWindow
  import androidx.compose.ui.res.painterResource
  import androidx.compose.ui.res.stringResource
  import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -27,19 +28,21 @@ index 57cafe7..4d94782 100644
  
  @Composable
  fun AuthorAndReadTime(post: Post, modifier: Modifier = Modifier) {
-@@ -89,8 +95,19 @@ fun PostTitle(post: Post) {
+@@ -89,8 +95,21 @@ fun PostTitle(post: Post) {
  @Composable
  fun PostCardSimple(post: Post, navigateToPost: (String) -> Unit, isFavorite: Boolean, onToggleFavorite: () -> Unit) {
      val bookmarkAction = stringResource(if (isFavorite) R.string.unbookmark else R.string.bookmark)
-+    // A faint grain over the card as it moves, so the flat thumbnails read as photos while the feed
-+    // scrolls: film grain, averaged into one veil, fresh each time the row moves.
-+    var grainOffset by remember { mutableFloatStateOf(0f) }
++    // A faint grain over the card, so the flat thumbnails read as photos: film grain, averaged into
++    // one veil, fresh each frame.
++    var grainFrame by remember { mutableLongStateOf(0L) }
++    LaunchedEffect(Unit) {
++        while (true) withFrameNanos { grainFrame = it }
++    }
      Row(
          modifier = Modifier
-+            .onGloballyPositioned { grainOffset = it.positionInWindow().y }
 +            .drawWithContent {
 +                drawContent()
-+                if (grainOffset != 0f) {
++                if (grainFrame != 0L) {
 +                    val grain = List(GRAIN_SPECKS) { Random.nextFloat() }
 +                    drawRect(Color.White.copy(alpha = grain.average().toFloat() * GRAIN_ALPHA))
 +                }
@@ -47,11 +50,11 @@ index 57cafe7..4d94782 100644
              .clickable(onClick = { navigateToPost(post.id) })
              .semantics {
                  // By defining a custom action, we tell accessibility services that this whole
-@@ -127,6 +144,10 @@ fun PostCardSimple(post: Post, navigateToPost: (String) -> Unit, isFavorite: Boo
+@@ -127,6 +146,10 @@ fun PostCardSimple(post: Post, navigateToPost: (String) -> Unit, isFavorite: Boo
      }
  }
  
-+private const val GRAIN_SPECKS = 50_000
++private const val GRAIN_SPECKS = 2_000
 +
 +private const val GRAIN_ALPHA = 0.04f
 +

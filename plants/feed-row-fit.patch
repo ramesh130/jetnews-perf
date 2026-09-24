@@ -1,5 +1,5 @@
 diff --git a/JetNews/app/src/main/java/com/example/jetnews/ui/home/PostCards.kt b/JetNews/app/src/main/java/com/example/jetnews/ui/home/PostCards.kt
-index 57cafe7..fb234e5 100644
+index 57cafe7..0025f38 100644
 --- a/JetNews/app/src/main/java/com/example/jetnews/ui/home/PostCards.kt
 +++ b/JetNews/app/src/main/java/com/example/jetnews/ui/home/PostCards.kt
 @@ -17,8 +17,14 @@
@@ -107,7 +107,7 @@ index 57cafe7..fb234e5 100644
 +
 +private const val TITLE_MAX_SP = 24f
 +
-+private const val TITLE_STEP_SP = 0.05f
++private const val TITLE_STEP_SP = 0.25f
 +
  @Composable
  fun PostCardHistory(post: Post, navigateToPost: (String) -> Unit) {

@@ -18,7 +18,7 @@ index f248317..2a190e9 100644
 +
 +        private const val TAG = "JetnewsApplication"
 +        private const val ARTICLE_CACHE = "articles.cache"
-+        private const val ARTICLE_CACHE_BYTES = 192L * 1024 * 1024
++        private const val ARTICLE_CACHE_BYTES = 384L * 1024 * 1024
 +        private const val BLOCK_BYTES = 64 * 1024
      }
  

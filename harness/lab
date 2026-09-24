@@ -86,7 +86,11 @@ mkdir -p "$RUN_DIR"
 RUN_STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 [ -z "$PLANT_NAME" ] || cp "$PLANT_FILE" "$RUN_DIR/plant.patch"
 
+# A screenshot before the measured part and one after it: nothing on screen is read by the harness
+# (uiautomator cannot dump a screen that never idles), so these are how an operator checks that the run
+# measured the screen it meant to. A pilot of a heavy plant once turned a fling into a tap on a row.
 scenario_setup
+adb_s exec-out screencap -p > "$RUN_DIR/before.png"
 if [ "$SCENARIO_OWN_TRACE" = 1 ]; then
     scenario_drive
 else
@@ -94,6 +98,7 @@ else
     scenario_drive
     trace_end trace
 fi
+adb_s exec-out screencap -p > "$RUN_DIR/after.png"
 RUN_FINISHED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 run_json > "$RUN_DIR/run.json"
 log "run $RUN_ID done: $RUN_DIR"
