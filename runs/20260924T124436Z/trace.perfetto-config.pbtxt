@@ -1,0 +1,92 @@
+# The part of every trace config the harness builds; see devicelab/lib/perfetto.sh.
+#
+# Streamed into the output file every few seconds rather than held until the end, so a long run is
+# bounded by the device's storage rather than by one in-memory buffer, and a run whose device dies
+# part-way still leaves a readable trace behind. DISCARD rather than RING_BUFFER: a trace that
+# dropped data says so in its stats, while a ring buffer quietly loses the start of the run.
+buffers {
+  size_kb: 65536
+  fill_policy: DISCARD
+}
+duration_ms: 600000
+write_into_file: true
+file_write_period_ms: 2500
+flush_period_ms: 10000
+
+# Process and thread names, so anything else in the trace can be attributed to the demo at all.
+data_sources {
+  config {
+    name: "linux.process_stats"
+    process_stats_config {
+      scan_all_processes_on_start: true
+    }
+  }
+}
+
+# The installed packages with their version codes: the trace itself records which build of the demo
+# it measured, independently of the run metadata written beside it.
+data_sources {
+  config {
+    name: "android.packages_list"
+  }
+}
+
+# --- jank ---
+# What UI jank is read from, beside the `frametimeline` source's per-frame deadlines: the demo's main
+# thread and RenderThread, what they were doing inside each frame, and the garbage collector. Wanted by
+# the jank scenario, whose metrics are frame percentiles, jank, main-thread blocking and GC time
+# (https://github.com/ramesh130/perfettoagent/issues/6).
+#
+# Each atrace category is here for something those metrics read:
+#   view     `Choreographer#doFrame` on the main thread and `DrawFrame` on the RenderThread, which are
+#            `android_frames`, joined to the frame timeline by their vsync id; and `deliverInputEvent`,
+#            inside which a tap's click handler runs
+#   dalvik   ART's GC slices on the demo's `HeapTaskDaemon`, and its waits for one on other threads
+#   binder_driver  binder transactions, so a main thread waiting on another process says which
+# and `atrace_apps` adds the demo's own `Trace` sections: Compose's, AndroidX's and Media3's.
+#
+# Not `gfx`, for the reason the startup fragment gives: SurfaceFlinger's, most of a trace's slices, and
+# nothing here reads it. The frames are the app's `view` slices and the `frametimeline` source.
+# Not `am`, `wm` or `res` either: the demo is running before this trace starts and nothing is launched
+# inside it, and no process is born in it, so neither are the task events the startup fragment names.
+#
+# The scheduler events are what `thread_state` is built from: whether the main thread was running,
+# runnable, sleeping, or blocked in the kernel during a frame. `sched_blocked_reason` says why a thread
+# blocked uninterruptibly. The process events end a thread that exits inside the trace — the pool's
+# players come and go as the feed scrolls, and their threads with them — so that `thread_state` ends it
+# there rather than leaving it asleep to the end. `compact_sched` packs the two busiest events, as the
+# startup fragment does.
+#
+# ref: https://perfetto.dev/docs/data-sources/frametimeline
+# ref: https://perfetto.dev/docs/data-sources/cpu-scheduling
+# ref: https://perfetto.dev/docs/data-sources/atrace
+data_sources {
+  config {
+    name: "linux.ftrace"
+    ftrace_config {
+      ftrace_events: "sched/sched_switch"
+      ftrace_events: "sched/sched_waking"
+      ftrace_events: "sched/sched_blocked_reason"
+      ftrace_events: "sched/sched_process_exit"
+      ftrace_events: "sched/sched_process_free"
+      atrace_categories: "view"
+      atrace_categories: "dalvik"
+      atrace_categories: "binder_driver"
+      atrace_apps: "com.example.jetnews"
+      compact_sched {
+        enabled: true
+      }
+    }
+  }
+}
+
+# --- frametimeline ---
+# SurfaceFlinger's expected and actual timeline for every frame, per layer: which frames missed their
+# deadline, and whether the app or the compositor missed it. Wanted by the UI jank measurement (#51).
+#
+# ref: https://perfetto.dev/docs/data-sources/frametimeline
+data_sources {
+  config {
+    name: "android.surfaceflinger.frametimeline"
+  }
+}

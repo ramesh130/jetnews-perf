@@ -1,0 +1,50 @@
+# The part of every trace config the harness builds; see devicelab/lib/perfetto.sh.
+#
+# Streamed into the output file every few seconds rather than held until the end, so a long run is
+# bounded by the device's storage rather than by one in-memory buffer, and a run whose device dies
+# part-way still leaves a readable trace behind. DISCARD rather than RING_BUFFER: a trace that
+# dropped data says so in its stats, while a ring buffer quietly loses the start of the run.
+buffers {
+  size_kb: 65536
+  fill_policy: DISCARD
+}
+duration_ms: 20000
+write_into_file: true
+file_write_period_ms: 2500
+flush_period_ms: 10000
+
+# Process and thread names, so anything else in the trace can be attributed to the demo at all.
+data_sources {
+  config {
+    name: "linux.process_stats"
+    process_stats_config {
+      scan_all_processes_on_start: true
+    }
+  }
+}
+
+# The installed packages with their version codes: the trace itself records which build of the demo
+# it measured, independently of the run metadata written beside it.
+data_sources {
+  config {
+    name: "android.packages_list"
+  }
+}
+
+# --- java_hprof ---
+# Java heap graph of the demo: objects, references and classes, which trace processor exposes as the
+# heap_graph_* tables. Answers "what is retaining this". Wanted by the leak hunt (#50).
+#
+# As written this takes one dump, when the data source starts. A caller that wants the heap at the
+# end of its scenario, or at intervals, wants continuous_dump_config in its own fragment.
+#
+# ref: https://perfetto.dev/docs/data-sources/java-heap-profiler
+data_sources {
+  config {
+    name: "android.java_hprof"
+    java_hprof_config {
+      process_cmdline: "com.example.jetnews"
+      dump_smaps: true
+    }
+  }
+}

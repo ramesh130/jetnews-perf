@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "run_id": "20260924T112927Z",
+  "started_at": "2026-09-24T11:29:27Z",
+  "finished_at": "2026-09-24T11:29:55Z",
+  "scenario": "bookmarks",
+  "base_commit": "ff0fce003ff868b2aedb35cdb4cece4d4e411235",
+  "app": {
+    "package": "com.example.jetnews",
+    "source_tree": "f756bb2642f4f83574280e5f42ee5838e02ea81f",
+    "upstream": "android/compose-samples 0bbd72d69834ec86a9a72bd3513118755fb286c5, JetNews/",
+    "build_type": "debug",
+    "debuggable": true,
+    "apk_sha256": "3615e49ac9ecc89aa94568b59219438fcc6064f9235324883babb1aecb47875a"
+  },
+  "plant": null,
+  "device": {
+    "serial": "emulator-5554",
+    "avd": "superplayer_verify_36",
+    "sdk": "36",
+    "abi": "arm64-v8a",
+    "build_fingerprint": "google/sdk_gphone64_arm64/emu64a:16/BE4B.251210.005/14574095:userdebug/dev-keys",
+    "root": true
+  },
+  "host": {
+    "os": "Darwin arm64",
+    "jdk": "openjdk version \"17.0.18\" 2026-01-20"
+  },
+  "perfetto": {
+    "data_sources": "jank,frametimeline",
+    "config": "trace.perfetto-config.pbtxt",
+    "trace": "trace.perfetto-trace.gz"
+  },
+  "parameters": {"taps": 6, "rest_s": 2, "tap_permille": [927, 561]}
+}
