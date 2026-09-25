@@ -34,17 +34,24 @@ json_bool() { if [ "$1" = 1 ]; then printf true; else printf false; fi; }
 
 # --- The device ------------------------------------------------------------------------------------
 #
-# An emulator already booted from the AVD in AVD (default superplayer_verify_36), found by serial.
-# Booting it is the operator's job: `emulator -avd superplayer_verify_36 -no-snapshot-load
-# -no-boot-anim -no-window -no-audio -gpu swiftshader_indirect`, the flags devicelab boots it with.
+# A booted device, found by serial (ANDROID_SERIAL, default emulator-5554). An emulator must run the
+# AVD in AVD (default superplayer_verify_36); booting it is the operator's job: `emulator -avd
+# superplayer_verify_36 -no-snapshot-load -no-boot-anim -no-window -no-audio -gpu
+# swiftshader_indirect`, the flags devicelab boots it with. Any other serial is a physical device,
+# which has no AVD to check: run.json names it by model instead. The startup and leak scenarios need
+# root, which the userdebug emulator has and a retail phone does not.
 
 device_adopt() {
     SERIAL="${ANDROID_SERIAL:-emulator-5554}"
     [ "$(adb_s shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ] ||
         die "no booted device at $SERIAL; boot the AVD first"
-    DEVICE_AVD="$(adb_s shell getprop ro.boot.qemu.avd_name | tr -d '\r')"
-    [ "$DEVICE_AVD" = "${AVD:-superplayer_verify_36}" ] ||
-        die "$SERIAL runs AVD '$DEVICE_AVD', not ${AVD:-superplayer_verify_36}"
+    DEVICE_AVD=""
+    if [[ "$SERIAL" == emulator-* ]]; then
+        DEVICE_AVD="$(adb_s shell getprop ro.boot.qemu.avd_name | tr -d '\r')"
+        [ "$DEVICE_AVD" = "${AVD:-superplayer_verify_36}" ] ||
+            die "$SERIAL runs AVD '$DEVICE_AVD', not ${AVD:-superplayer_verify_36}"
+    fi
+    DEVICE_MODEL="$(adb_s shell getprop ro.product.model | tr -d '\r')"
     DEVICE_SDK="$(adb_s shell getprop ro.build.version.sdk | tr -d '\r')"
     DEVICE_ABI="$(adb_s shell getprop ro.product.cpu.abi | tr -d '\r')"
     DEVICE_FINGERPRINT="$(adb_s shell getprop ro.build.fingerprint | tr -d '\r')"
@@ -250,6 +257,7 @@ run_json() {
   "device": {
     "serial": $(json_str "$SERIAL"),
     "avd": $(json_str "$DEVICE_AVD"),
+    "model": $(json_str "$DEVICE_MODEL"),
     "sdk": $(json_str "$DEVICE_SDK"),
     "abi": $(json_str "$DEVICE_ABI"),
     "build_fingerprint": $(json_str "$DEVICE_FINGERPRINT"),

@@ -19,6 +19,7 @@ from the trace alone gets the trace, and nothing from here that names the plant.
 
 ```bash
 emulator -avd superplayer_verify_36 -no-snapshot-load -no-boot-anim -no-window -no-audio -gpu swiftshader_indirect &
+export ANDROID_SERIAL=<serial>                            # or a physical device, from `adb devices`; startup and leak need it rooted
 harness/lab run startup                                   # 20 cold starts, one trace
 harness/lab run scroll --plant feed-card-grain            # the home feed scrolled, built with a plant
 ```

@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: Apache-2.0
 #
-# Builds JetNews, installs it on the emulator, drives one scenario and comes back with a trace and a
+# Builds JetNews, installs it on the emulator or a device, drives one scenario and comes back with a trace and a
 # run.json that says what was measured on what.
 #
 #   harness/lab run <startup|scroll|bookmarks|leak> [--plant <name>]
 #
 # The shape of superPlayer's devicelab `lab run`, cut down to what JetNews needs (lib.sh says what was
 # dropped). A run:
-#   1. adopts the booted emulator (ANDROID_SERIAL, default emulator-5554) and refuses another AVD;
+#   1. adopts the booted device (ANDROID_SERIAL, default emulator-5554); an emulator must run the
+#      expected AVD, and any other serial is taken as a physical device;
 #   2. refuses a JetNews/ with uncommitted changes, so that `base_commit` names what was built;
 #   3. with --plant, applies plants/<name>.patch, builds, and reverts it before anything is measured;
 #   4. installs the APK and records its sha256;
